@@ -27,11 +27,15 @@ df.dropna(inplace=True)
 print(df.head())
 
 X = np.array(df.drop(['label'],1))
+print(f'X: {X}')
 y = np.array(df['label'])
 X = preprocessing.scale(X)
 # X = X[:-forecast_out+1]
 # df.dropna(inplace=True)
 y = np.array(df['label'])
+
+print(f'X: {X}')
+print(f'y: {y}')
 
 # print(len(X), len(y))
 X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=0.2)
