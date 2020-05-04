@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class Shape(Enum):
     CIRCLE = 1
     TRIANGLE = 2
@@ -58,3 +57,4 @@ class HillClimbingJohnnyPies:
 
 obj = HillClimbingJohnnyPies()
 obj.run()
+
