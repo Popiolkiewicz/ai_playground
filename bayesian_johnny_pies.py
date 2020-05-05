@@ -48,53 +48,56 @@ class BayesianJohnnyPies:
                                         FillingShade.DARK, FillingShade.WHITE, FillingShade.DARK, FillingShade.WHITE,
                                         FillingShade.DARK, FillingShade.DARK, FillingShade.GRAY, FillingShade.DARK]},
                       columns=['decision', 'Shape', 'CrustSize', 'CrustShade', 'FillingSize', 'FillingShade'])
+    condProb = {}
     p_dict = {}
     n_dict = {}
-    trainingSize = 6
+    trainingSize = 5
+    dataSize = 6
 
     def run(self):
         gb = self.df.groupby('decision')
-        
-        ttg = gb.get_group(True).sample(frac=self.trainingSize / 6)
+        fg = gb.get_group(False).sample(frac=1)
+        tg = gb.get_group(True).sample(frac=1)
 
-        self.p_dict[Shape.SQUARE] = ttg[ttg['Shape'] == Shape.SQUARE]['Shape'].count() / self.trainingSize
-        self.p_dict[Shape.TRIANGLE] = ttg[ttg['Shape'] == Shape.TRIANGLE]['Shape'].count() / self.trainingSize
-        self.p_dict[Shape.CIRCLE] = ttg[ttg['Shape'] == Shape.CIRCLE]['Shape'].count() / self.trainingSize
+        trueTrainingDf = tg[:self.trainingSize]
+        falseTrainingDf = fg[:self.trainingSize]
 
-        self.p_dict[CrustSize.THIN] = ttg[ttg['CrustSize'] == CrustSize.THIN]['CrustSize'].count() / self.trainingSize
-        self.p_dict[CrustSize.THICK] = ttg[ttg['CrustSize'] == CrustSize.THICK]['CrustSize'].count() / self.trainingSize
-        self.p_dict[CrustShade.DARK] = ttg[ttg['CrustShade'] == CrustShade.DARK]['CrustShade'].count() / self.trainingSize
-        self.p_dict[CrustShade.GRAY] = ttg[ttg['CrustShade'] == CrustShade.GRAY]['CrustShade'].count() / self.trainingSize
-        self.p_dict[CrustShade.WHITE] = ttg[ttg['CrustShade'] == CrustShade.WHITE]['CrustShade'].count() / self.trainingSize
+        testData = pd.concat([tg[self.trainingSize:self.dataSize], fg[self.trainingSize:self.dataSize]])
 
-        self.p_dict[FillingSize.THIN] = ttg[ttg['FillingSize'] == FillingSize.THIN]['FillingSize'].count() / self.trainingSize
-        self.p_dict[FillingSize.THICK] = ttg[ttg['FillingSize'] == FillingSize.THICK]['FillingSize'].count() / self.trainingSize
-        self.p_dict[FillingShade.DARK] = ttg[ttg['FillingShade'] == FillingShade.DARK]['FillingShade'].count() / self.trainingSize
-        self.p_dict[FillingShade.GRAY] = ttg[ttg['FillingShade'] == FillingShade.GRAY]['FillingShade'].count() / self.trainingSize
-        self.p_dict[FillingShade.WHITE] = ttg[ttg['FillingShade'] == FillingShade.WHITE]['FillingShade'].count() / self.trainingSize
+        self.createConditionalProbabilities(trueTrainingDf, falseTrainingDf)
 
-        for x, y in self.p_dict.items():
-            print(x, y)
-            
-        ftg = gb.get_group(False).sample(frac=self.trainingSize / 6)
+        # print(self.n_dict)
+        # print(self.p_dict)
 
-        self.n_dict[Shape.SQUARE] = ftg[ftg['Shape'] == Shape.SQUARE]['Shape'].count() / self.trainingSize
-        self.n_dict[Shape.TRIANGLE] = ftg[ftg['Shape'] == Shape.TRIANGLE]['Shape'].count() / self.trainingSize
-        self.n_dict[Shape.CIRCLE] = ftg[ftg['Shape'] == Shape.CIRCLE]['Shape'].count() / self.trainingSize
+        self.test(testData)
 
-        self.n_dict[CrustSize.THIN] = ftg[ftg['CrustSize'] == CrustSize.THIN]['CrustSize'].count() / self.trainingSize
-        self.n_dict[CrustSize.THICK] = ftg[ftg['CrustSize'] == CrustSize.THICK]['CrustSize'].count() / self.trainingSize
-        self.n_dict[CrustShade.DARK] = ftg[ftg['CrustShade'] == CrustShade.DARK]['CrustShade'].count() / self.trainingSize
-        self.n_dict[CrustShade.GRAY] = ftg[ftg['CrustShade'] == CrustShade.GRAY]['CrustShade'].count() / self.trainingSize
-        self.n_dict[CrustShade.WHITE] = ftg[ftg['CrustShade'] == CrustShade.WHITE]['CrustShade'].count() / self.trainingSize
+    def createConditionalProbabilities(self, ttg, ftg):
+        for piePropertyEnum in self.getPiePropertyEnums():
+            for data in piePropertyEnum:
+                self.p_dict[data] = ttg[ttg[piePropertyEnum.__name__] == data].shape[0] / self.trainingSize
+                self.n_dict[data] = ftg[ftg[piePropertyEnum.__name__] == data].shape[0] / self.trainingSize
 
-        self.n_dict[FillingSize.THIN] = ftg[ftg['FillingSize'] == FillingSize.THIN]['FillingSize'].count() / self.trainingSize
-        self.n_dict[FillingSize.THICK] = ftg[ftg['FillingSize'] == FillingSize.THICK]['FillingSize'].count() / self.trainingSize
-        self.n_dict[FillingShade.DARK] = ftg[ftg['FillingShade'] == FillingShade.DARK]['FillingShade'].count() / self.trainingSize
-        self.n_dict[FillingShade.GRAY] = ftg[ftg['FillingShade'] == FillingShade.GRAY]['FillingShade'].count() / self.trainingSize
-        self.n_dict[FillingShade.WHITE] = ftg[ftg['FillingShade'] == FillingShade.WHITE]['FillingShade'].count() / self.trainingSize
+    def getPiePropertyEnums(self):
+        return [Shape, CrustSize, CrustShade, FillingSize, FillingShade]
 
-        for x, y in self.n_dict.items():
-            print(x, y)
+    def test(self, testData):
+        for idx in range(testData.shape[0]):
+            testRow = testData.iloc[idx]
+            decision = testRow['decision']
+            falseProbability = 1
+            trueProbability = 1
+            for piePropertyEnum in self.getPiePropertyEnums():
+                name = piePropertyEnum.__name__
+                falseProbability *= self.n_dict[testRow[name]]
+                trueProbability *= self.p_dict[testRow[name]]
+            print(f'falseProbability: {falseProbability}')
+            print(f'trueProbability: {trueProbability}')
+            print(f'testRowDecision: {decision}')
+            if ((falseProbability < trueProbability and testRow['decision'] == True) or
+                    (falseProbability > trueProbability and testRow['decision'] == False)):
+                print('Success')
+            else:
+                print('Failure')
+
 
 BayesianJohnnyPies().run()
