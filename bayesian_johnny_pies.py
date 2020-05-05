@@ -48,7 +48,6 @@ class BayesianJohnnyPies:
                                         FillingShade.DARK, FillingShade.WHITE, FillingShade.DARK, FillingShade.WHITE,
                                         FillingShade.DARK, FillingShade.DARK, FillingShade.GRAY, FillingShade.DARK]},
                       columns=['decision', 'Shape', 'CrustSize', 'CrustShade', 'FillingSize', 'FillingShade'])
-    condProb = {}
     p_dict = {}
     n_dict = {}
     trainingSize = 5
@@ -65,10 +64,6 @@ class BayesianJohnnyPies:
         testData = pd.concat([tg[self.trainingSize:self.dataSize], fg[self.trainingSize:self.dataSize]])
 
         self.createConditionalProbabilities(trueTrainingDf, falseTrainingDf)
-
-        # print(self.n_dict)
-        # print(self.p_dict)
-
         self.test(testData)
 
     def createConditionalProbabilities(self, ttg, ftg):
@@ -93,8 +88,8 @@ class BayesianJohnnyPies:
             print(f'falseProbability: {falseProbability}')
             print(f'trueProbability: {trueProbability}')
             print(f'testRowDecision: {decision}')
-            if ((falseProbability < trueProbability and testRow['decision'] == True) or
-                    (falseProbability > trueProbability and testRow['decision'] == False)):
+            if ((falseProbability < trueProbability and testRow['decision']) or
+                    (falseProbability > trueProbability and not(testRow['decision']))):
                 print('Success')
             else:
                 print('Failure')
